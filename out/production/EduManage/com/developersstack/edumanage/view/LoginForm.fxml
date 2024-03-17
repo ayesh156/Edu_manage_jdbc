@@ -12,7 +12,6 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.Font?>
 
-
 <AnchorPane fx:id="context" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.developersstack.edumanage.controller.LoginFormController">
    <children>
       <Label layoutX="14.0" layoutY="23.0" text="Login" textFill="#160090">
@@ -21,12 +20,12 @@
          </font>
       </Label>
       <Separator layoutX="14.0" layoutY="51.0" prefHeight="1.0" prefWidth="322.0" />
-      <TextField fx:id="txtEmail" layoutX="14.0" layoutY="81.0" prefHeight="29.0" prefWidth="322.0" promptText="email">
+      <TextField fx:id="txtEmail" layoutX="14.0" layoutY="81.0" prefHeight="29.0" prefWidth="322.0" promptText="email" text="ayesh@gmail.com">
          <font>
             <Font name="System Bold" size="13.0" />
          </font>
       </TextField>
-      <PasswordField fx:id="txtPassword" layoutX="14.0" layoutY="126.0" prefHeight="29.0" prefWidth="322.0" promptText="Password">
+      <PasswordField fx:id="txtPassword" layoutX="14.0" layoutY="126.0" prefHeight="29.0" prefWidth="322.0" promptText="Password" text="1234">
          <font>
             <Font name="System Bold" size="13.0" />
          </font>

@@ -64,7 +64,6 @@ public class LoginFormController {
         // Create a Connection
         Connection connection = DbConnection.getInstance().getConnection();
         String sql = "SELECT * FROM user WHERE email = ?";
-        System.out.println(sql);
         PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1,email);
         ResultSet resultSet = statement.executeQuery(); // SELECT

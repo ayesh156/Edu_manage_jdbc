@@ -16,6 +16,10 @@ public class TechAddTm {
         this.btn = btn;
     }
 
+    public TechAddTm(String name) {
+        this.name = name;
+    }
+
     public int getCode() {
         return code;
     }
