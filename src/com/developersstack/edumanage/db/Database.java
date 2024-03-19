@@ -1,9 +1,6 @@
 package com.developersstack.edumanage.db;
 
-import com.developersstack.edumanage.model.Program;
-import com.developersstack.edumanage.model.Student;
-import com.developersstack.edumanage.model.Teacher;
-import com.developersstack.edumanage.model.User;
+import com.developersstack.edumanage.model.*;
 import com.developersstack.edumanage.util.security.PasswordManager;
 
 import java.util.ArrayList;
@@ -17,6 +14,10 @@ public class Database {
             = new ArrayList();
     public static ArrayList<Program> programTable
             = new ArrayList();
+
+    public static ArrayList<Intake> intakeTable
+            = new ArrayList();
+
 
     static {
         userTable.add(

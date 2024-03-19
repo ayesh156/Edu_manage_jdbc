@@ -170,6 +170,7 @@ public class StudentFormController {
                 if(updateStudent(student)){
                     clear();
                     setTableData(searchText);
+                    btn.setText("Save Student");
                     new Alert(Alert.AlertType.INFORMATION, "Student Updated!").show();
                 } else{
                     new Alert(Alert.AlertType.WARNING, "Try Again!").show();
@@ -185,6 +186,7 @@ public class StudentFormController {
         //txtName.setText("");
         txtName.clear();
         txtAddress.clear();
+        tblStudents.getSelectionModel().clearSelection();
     }
 
     public void newStudentOnAction(ActionEvent actionEvent) {

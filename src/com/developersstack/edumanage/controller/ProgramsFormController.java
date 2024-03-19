@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static java.awt.SystemColor.text;
 
@@ -89,10 +90,13 @@ public class ProgramsFormController {
 
     public TableColumn<?, ?> colTRemove;
 
-    public void initialize() {
+    String searchText="";
+
+    public void initialize() throws SQLException, ClassNotFoundException {
         setProgramCode();
         setTeachers();
-        loadPrograms();
+        setProgramData(searchText);
+        loadTeachersComboBox();
 
         colId.setCellValueFactory(new PropertyValueFactory<>("code"));
         colName.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -106,11 +110,10 @@ public class ProgramsFormController {
         colTName.setCellValueFactory(new PropertyValueFactory<>("name"));
         colTRemove.setCellValueFactory(new PropertyValueFactory<>("btn"));
 
-        try {
-            loadTeachersComboBox();
-        } catch (ClassNotFoundException | SQLException e) {
-            throw new RuntimeException(e);
-        }
+        txtSearch.textProperty().addListener((observable, oldValue, newValue) -> {
+            searchText=newValue;
+            setProgramData(searchText);
+        });
 
         tblPrograms.getSelectionModel()
                 .selectedItemProperty()
@@ -184,26 +187,34 @@ public class ProgramsFormController {
             List<TechAddTm> technologies = new ArrayList<>();
             int idCounter = 1;
             for (String techId : stringList) {
-                Button btn = new Button("Remove");
-                TechAddTm techAddTm = new TechAddTm(idCounter, techId, btn);
+                Button removeBtn = new Button("Remove");
+                TechAddTm techAddTm = new TechAddTm(idCounter, techId, removeBtn);
+
+                removeBtn.setOnAction(event -> {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Are you sure?", ButtonType.YES, ButtonType.NO);
+                    Optional<ButtonType> result = alert.showAndWait();
+                    if (result.isPresent() && result.get() == ButtonType.YES) {
+                        technologies.remove(techAddTm);
+                        tblTechnologies.setItems(FXCollections.observableArrayList(technologies));
+                    }
+                });
                 technologies.add(techAddTm);
                 idCounter++;
             }
             ObservableList<TechAddTm> technologiesList = FXCollections.observableArrayList(technologies);
             tblTechnologies.setItems(technologiesList);
+            btn.setText("Update Program");
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
 
-
-
     private void setTechData(TechAddTm newValue) {
-        txtTechnology.setText(String.valueOf(newValue.getName()));
-
+        if (newValue != null) {
+            txtTechnology.setText(String.valueOf(newValue.getName()));
+        }
     }
-
     private void setTeachers() {
         for (Teacher t : Database.teacherTable
         ) {
@@ -243,18 +254,20 @@ public class ProgramsFormController {
 
     public void newProgramOnAction(ActionEvent event) {
         clearFields();
+        btn.setText("Save Program");
     }
 
 
     public void saveOnAction(ActionEvent event) throws SQLException, ClassNotFoundException {
-        String[] selectedTechs = new String[tmList.size()];
-        int pointer = 0;
-        for (TechAddTm t : tmList) {
-            selectedTechs[pointer] = t.getName();
-            pointer++;
-        }
 
         if (btn.getText().equals("Save Program")) {
+            String[] selectedTechs = new String[tmList.size()];
+            int pointer = 0;
+            for (TechAddTm t : tmList) {
+                selectedTechs[pointer] = t.getName();
+                pointer++;
+            }
+
             String selectedTeacher = cmbTeacher.getValue();
             if (selectedTeacher == null) {
                 new Alert(Alert.AlertType.WARNING, "Please select a teacher").show();
@@ -262,7 +275,7 @@ public class ProgramsFormController {
             }
             // Extract the teacher ID from the selected value
             String[] selectedTeacherParts = selectedTeacher.split("\\.");
-            String teacherId = selectedTeacherParts[0];
+            String teacherId = selectedTeacherParts[1];
 
             Program program = new Program(
                     txtId.getText(),
@@ -286,38 +299,104 @@ public class ProgramsFormController {
 
             if (saved) {
                 new Alert(Alert.AlertType.INFORMATION, "Saved").show();
-                loadPrograms();
+                setProgramData(searchText);
                 clearFields();
+            } else {
+                new Alert(Alert.AlertType.WARNING, "Try Again!").show();
+            }
+
+        }else if(btn.getText().equals("Update Program")){
+
+            ObservableList<TechAddTm> items = tblTechnologies.getItems();
+            String[] technologyNames = new String[items.size()];
+
+            for (int i = 0; i < items.size(); i++) {
+                TechAddTm techAddTm = items.get(i);
+                technologyNames[i] = techAddTm.getName();
+            }
+
+            String selectedTeacher = cmbTeacher.getValue();
+            if (selectedTeacher == null) {
+                new Alert(Alert.AlertType.WARNING, "Please select a teacher").show();
+                return;
+            }
+            // Extract the teacher ID from the selected value
+            String[] selectedTeacherParts = selectedTeacher.split("\\.");
+            String teacherId = selectedTeacherParts[0];
+
+            Program program = new Program(
+                    txtId.getText(),
+                    txtName.getText(),
+                    technologyNames,
+                    teacherId, // Use the extracted teacher ID
+                    Double.parseDouble(txtCost.getText())
+            );
+
+            Database.programTable.add(program);
+
+            Connection connection = DbConnection.getInstance().getConnection();
+            PreparedStatement preparedStatement =
+                    connection.prepareStatement("UPDATE program SET  name=?, cost=?, technology_id=?, teacher_id=? WHERE code=?");
+            preparedStatement.setString(1, program.getName());
+            preparedStatement.setDouble(2, program.getCost());
+            preparedStatement.setString(3, Arrays.toString(program.getTechnologies()));
+            preparedStatement.setString(4, program.getTeacherId());
+            preparedStatement.setString(5, program.getCode());
+
+            boolean saved = preparedStatement.executeUpdate() > 0;
+
+            if (saved) {
+                new Alert(Alert.AlertType.INFORMATION, "Updated").show();
+                setProgramData(searchText);
+                clearFields();
+                btn.setText("Save Program");
             } else {
                 new Alert(Alert.AlertType.WARNING, "Try Again!").show();
             }
         }
     }
 
-    private void loadPrograms() {
+    private void setProgramData(String searchText) {
         try {
-            Connection connection = DbConnection.getInstance().getConnection();
-            PreparedStatement preparedStatement =
-                    connection.prepareStatement("SELECT code, name, teacher_id, cost FROM program");
-            ResultSet resultSet = preparedStatement.executeQuery();
-
             ObservableList<ProgramTm> programsTmList = FXCollections.observableArrayList();
-            while (resultSet.next()) {
-                String code = resultSet.getString("code");
-                String name = resultSet.getString("name");
-                String teacherId = resultSet.getString("teacher_id");
-                double cost = resultSet.getDouble("cost");
+            for (Program pt: searchPrograms(searchText)
+            ) {
 
                 Button techButton = new Button("show Tech");
                 Button removeButton = new Button("Delete");
                 ProgramTm tm = new ProgramTm(
-                        code,
-                        name,
-                        teacherId,
+                        pt.getCode(),
+                        pt.getName(),
+                        pt.getTeacherId(),
                         techButton,
-                        cost,
+                        pt.getCost(),
                         removeButton
                 );
+
+                removeButton.setOnAction(e->{
+                    Alert alert= new Alert(
+                            Alert.AlertType.CONFIRMATION,
+                            "Are you sure?",
+                            ButtonType.YES,ButtonType.NO
+                    );
+                    Optional<ButtonType> buttonType = alert.showAndWait();
+                    if (buttonType.get().equals(ButtonType.YES)){
+
+                        try {
+                            if(deleteProgram(pt.getCode())){
+                                new Alert(Alert.AlertType.INFORMATION, "Deleted!").show();
+                                setProgramData(searchText);
+                                setProgramCode();
+                            }else {
+                                new Alert(Alert.AlertType.WARNING, "Try Again!").show();
+                            }
+                        } catch (ClassNotFoundException | SQLException ex) {
+                            new Alert(Alert.AlertType.ERROR, ex.toString()).show();
+                        }
+
+                    }
+                });
+
                 programsTmList.add(tm);
             }
             tblPrograms.setItems(programsTmList);
@@ -326,6 +405,70 @@ public class ProgramsFormController {
             e.printStackTrace(); // Handle or log the exception appropriately
         }
     }
+
+    private List<Program> searchPrograms(String text) throws ClassNotFoundException, SQLException {
+        text = "%" + text + "%";
+        // Create a Connection
+        Connection connection = DbConnection.getInstance().getConnection();
+        PreparedStatement preparedStatement =
+                connection.prepareStatement("SELECT * FROM program JOIN teacher t on program.teacher_id = t.teacher_id WHERE name LIKE ? OR t.full_name LIKE ?");
+        preparedStatement.setString(1,text);
+        preparedStatement.setString(2,text);
+        ResultSet resultSet = preparedStatement.executeQuery();
+        List<Program> list = new ArrayList<>();
+        while (resultSet.next()){
+            list.add(
+                    new Program(
+                            resultSet.getString("code"),
+                            resultSet.getString("name"),
+                            new String[]{resultSet.getString("technology_id")},
+                            resultSet.getString("teacher_id"),
+                            resultSet.getDouble("cost")
+                    )
+            );
+        }
+        return list;
+    }
+
+    private boolean deleteProgram(String id) throws ClassNotFoundException, SQLException {
+        // Create a Connection
+        Connection connection = null;
+        try {
+            connection = DbConnection.getInstance().getConnection();
+            // Start transaction
+            connection.setAutoCommit(false);
+
+            // Delete related intakes first
+            PreparedStatement preparedStatementIntake =
+                    connection.prepareStatement("DELETE FROM intake WHERE program_code=?");
+            preparedStatementIntake.setString(1, id);
+            preparedStatementIntake.executeUpdate();
+
+            // Now, delete the program
+            PreparedStatement preparedStatement =
+                    connection.prepareStatement("DELETE FROM program WHERE code=?");
+            preparedStatement.setString(1, id);
+            boolean programDeleted = preparedStatement.executeUpdate() > 0;
+
+            // Commit transaction
+            connection.commit();
+
+            return programDeleted;
+        } catch (SQLException e) {
+            // Rollback in case of an exception
+            if (connection != null) {
+                connection.rollback();
+            }
+            // Handle or rethrow the exception
+            throw e;
+        } finally {
+            // Close connection
+            if (connection != null) {
+                connection.setAutoCommit(true); // Reset auto-commit
+            }
+        }
+    }
+
 
     private void setUi(String location) throws IOException {
         Stage stage = (Stage) context.getScene().getWindow();
@@ -342,6 +485,29 @@ public class ProgramsFormController {
             TechAddTm tm = new TechAddTm(
                     tmList.size() + 1, txtTechnology.getText().trim(), btn
             );
+
+            btn.setOnAction(e -> {
+                Alert alert = new Alert(
+                        Alert.AlertType.CONFIRMATION,
+                        "Are you sure?",
+                        ButtonType.YES, ButtonType.NO
+                );
+                Optional<ButtonType> buttonType = alert.showAndWait();
+                if (buttonType.isPresent() && buttonType.get() == ButtonType.YES) {
+                    // Get the row associated with the button
+                    TechAddTm item = (TechAddTm) btn.getUserData();
+                    if (item != null) {
+                        // Remove the item from the list
+                        tmList.remove(item);
+                        // Update the TableView
+                        tblTechnologies.setItems(FXCollections.observableArrayList(tmList));
+                    }
+                }
+            });
+
+            // Set the button's user data to the TechAddTm object
+            btn.setUserData(tm);
+
             tmList.add(tm);
             tblTechnologies.setItems(tmList);
             txtTechnology.clear();
@@ -358,6 +524,8 @@ public class ProgramsFormController {
         txtCost.clear();
         cmbTeacher.setValue(null);
         tblTechnologies.getItems().clear();
+        txtSearch.clear();
+        tblPrograms.getSelectionModel().clearSelection();
     }
 
     private boolean isExists(String tech) {

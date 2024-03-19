@@ -151,6 +151,7 @@ public class TeacherFormController {
                 if(updateTeacher(teacher)){
                     clear();
                     setTableData(searchText);
+                    btn.setText("Save Teacher");
                     new Alert(Alert.AlertType.INFORMATION, "Teacher Updated!").show();
                 }else {
                     new Alert(Alert.AlertType.WARNING, "Try Again!").show();
@@ -166,6 +167,7 @@ public class TeacherFormController {
         //txtName.setText("");
         txtName.clear();
         txtAddress.clear();
+        tblTeachers.getSelectionModel().clearSelection();
     }
 
     private void setTeacherId() {

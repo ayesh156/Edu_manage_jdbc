@@ -7,12 +7,12 @@ public class Intake {
     private Date startDate;
     private String intakeName;
     private String programId;
-    private boolean intakeCompleteness;
+    private String intakeCompleteness;
 
     public Intake() {
     }
 
-    public Intake(String intakeId, Date startDate, String intakeName, String programId, boolean intakeCompleteness) {
+    public Intake(String intakeId, Date startDate, String intakeName, String programId, String intakeCompleteness) {
         this.intakeId = intakeId;
         this.startDate = startDate;
         this.intakeName = intakeName;
@@ -20,11 +20,11 @@ public class Intake {
         this.intakeCompleteness = intakeCompleteness;
     }
 
-    public boolean isIntakeCompleteness() {
+    public String getIntakeCompleteness() {
         return intakeCompleteness;
     }
 
-    public void setIntakeCompleteness(boolean intakeCompleteness) {
+    public void setIntakeCompleteness(String intakeCompleteness) {
         this.intakeCompleteness = intakeCompleteness;
     }
 
